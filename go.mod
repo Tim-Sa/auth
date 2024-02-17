@@ -3,6 +3,7 @@ module github.com/Tim-Sa/auth
 go 1.21.6
 
 require (
+	github.com/brianvoe/gofakeit v2.2.0+incompatible
 	github.com/fatih/color v1.16.0
 	google.golang.org/grpc v1.61.1
 	google.golang.org/protobuf v1.32.0
