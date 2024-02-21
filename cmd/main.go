@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const grpcPort = 50051
@@ -72,6 +73,29 @@ func (s *server) Create(ctx context.Context, req *desc.CreateRequest) (*desc.Cre
 		Id: RandIndex(),
 	}, nil
 }
+
+func (s *server) Update(ctx context.Context, req * desc.UpdateRequest) (*emptypb.Empty, error) {
+	id := req.GetId()
+	name := req.GetName()
+	email := req.GetEmail()
+	role := req.GetRole()
+
+	log.Printf("id - %d", id)
+
+	if name != nil {
+		log.Printf("name - %s ", name)
+	}
+
+	if email != nil {
+		log.Printf("email - %s ", email)
+	}
+
+	log.Printf("role - %v ", role)
+
+	empty := emptypb.Empty{}
+	return &empty, nil
+}
+
 
 func main() {
 	fmt.Println(color.GreenString("Auth service start"))
