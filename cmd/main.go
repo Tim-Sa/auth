@@ -2,26 +2,26 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"log"
 	"math"
 	"math/big"
-	"crypto/rand"
 	"net"
 
 	"github.com/brianvoe/gofakeit"
 	"github.com/fatih/color"
-
-	desc "github.com/Tim-Sa/auth/pkg/auth_v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
+	desc "github.com/Tim-Sa/auth/pkg/auth_v1"
 )
 
 const grpcPort = 50051
 
-func RandIndex() int64 {
+func randIndex() int64 {
 	nBig, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
 	if err != nil {
 		return 0
@@ -33,7 +33,7 @@ type server struct {
 	desc.UnimplementedAuthV1Server
 }
 
-func (s *server) Get(ctx context.Context, req *desc.GetRequest) (*desc.GetResponse, error) {
+func (s *server) Get(_ context.Context, req *desc.GetRequest) (*desc.GetResponse, error) {
 	log.Printf("User id: %d", req.GetId())
 
 	var role desc.Role
@@ -55,32 +55,32 @@ func (s *server) Get(ctx context.Context, req *desc.GetRequest) (*desc.GetRespon
 	}, nil
 }
 
-func (s *server) Create(ctx context.Context, req *desc.CreateRequest) (*desc.CreateResponse, error) {
+func (s *server) Create(_ context.Context, req *desc.CreateRequest) (*desc.CreateResponse, error) {
 	name := req.Info.GetName()
 	email := req.Info.GetEmail()
 	password := req.Info.GetPassword()
-	password_confirm := req.Info.GetPasswordConfirm()
+	passwordConfirm := req.Info.GetPasswordConfirm()
 	role := req.Info.GetRole()
 
 	fmt.Println(color.GreenString("New user created:"))
 	log.Printf("name - %s ", name)
 	log.Printf("email - %s ", email)
 	log.Printf("password - %s ", password)
-	log.Printf("password_confirm - %s ", password_confirm)
+	log.Printf("password confirm - %s ", passwordConfirm)
 	log.Printf("role - %v ", role)
 
 	return &desc.CreateResponse{
-		Id: RandIndex(),
+		Id: randIndex(),
 	}, nil
 }
 
-func (s *server) Update(ctx context.Context, req * desc.UpdateRequest) (*emptypb.Empty, error) {
+func (s *server) Update(_ context.Context, req *desc.UpdateRequest) (*emptypb.Empty, error) {
 	id := req.GetId()
 	name := req.GetName()
 	email := req.GetEmail()
 	role := req.GetRole()
 
-	log.Printf("id - %d", id)
+	log.Printf("User with id - %d was updated", id)
 
 	if name != nil {
 		log.Printf("name - %s ", name)
@@ -96,6 +96,12 @@ func (s *server) Update(ctx context.Context, req * desc.UpdateRequest) (*emptypb
 	return &empty, nil
 }
 
+func (s *server) Delete(_ context.Context, req *desc.DeleteRequest) (*emptypb.Empty, error) {
+	log.Printf("User id: %d was removed", req.GetId())
+
+	empty := emptypb.Empty{}
+	return &empty, nil
+}
 
 func main() {
 	fmt.Println(color.GreenString("Auth service start"))
