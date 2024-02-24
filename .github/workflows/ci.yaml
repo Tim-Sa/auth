@@ -1,0 +1,58 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  REGISTRY: "cr.selcloud.ru/tim-sa"
+  IMAGE_NAME: "auth"
+  CONTAINER_NAME: "auth-container"
+
+jobs:
+  image-build-and-push:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v3
+
+      - name: Login to Docker Registry
+        run: docker login -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }} $REGISTRY
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and Push Docker Image
+        run: |
+          # unique tag of image: 7 symbols from push hash 
+          TAG_NAME=$(echo $GITHUB_SHA | head -c7)
+          # create image
+          docker build -t $REGISTRY/$IMAGE_NAME .
+          # re-tag image with custom unique tag
+          docker tag $REGISTRY/$IMAGE_NAME:latest $REGISTRY/$IMAGE_NAME:$TAG_NAME
+          # push to remote registry
+          docker push $REGISTRY/$IMAGE_NAME:$TAG_NAME
+
+  deploy-image:
+    runs-on: ubuntu-22.04
+    needs: image-build-and-push
+
+
+    steps:
+      - name: Deploy to Selectel Cloud via SSH action
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }} 
+          key: ${{ secrets.SSHKEY }}
+          envs: IMAGE_NAME, REGISTRY, GITHUB_SHA, CONTAINER_NAME
+          script: |
+            TAG_NAME=$(echo $GITHUB_SHA | head -c7)
+            docker login -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }} $REGISTRY
+            docker stop $CONTAINER_NAME
+            docker rm $CONTAINER_NAME
+            docker run -d -p 50052:50051 --name $CONTAINER_NAME -t $REGISTRY/$IMAGE_NAME:$TAG_NAME
